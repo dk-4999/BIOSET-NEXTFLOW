@@ -1,0 +1,48 @@
+# MCMICRO Workflow Parameters for BioSET Integration
+# ===================================================
+#
+# This file configures the MCMICRO upstream pipeline stages.
+# Adjust based on your dataset and microscopy modality.
+#
+# Reference: https://mcmicro.org/parameters/
+
+workflow:
+  # Start at registration (skip raw2ome if already in OME format)
+  start-at: registration
+  # Stop after quantification (BioSET handles downstream)
+  stop-at: quantification
+
+options:
+  # --- Registration ---
+  ashlar:
+    # ASHLAR registration parameters
+    # Adjust flip-x/flip-y based on your microscope
+    flip-x: false
+    flip-y: false
+    maximum-shift: 200
+
+  # --- Segmentation ---
+  # Choose ONE segmentation method (uncomment the one you want)
+
+  # Option A: Mesmer (deep learning, good for tissue)
+  mesmer:
+    enabled: true
+    compartment: whole-cell  # or 'nuclear'
+    image-mpp: 0.14         # microns per pixel (match your voxel_size_um.x)
+
+  # Option B: CellPose (alternative deep learning)
+  # cellpose:
+  #   enabled: true
+  #   model: cyto2
+  #   diameter: 30
+
+  # Option C: S3segmenter (classical, fast)
+  # s3seg:
+  #   enabled: true
+  #   nucleiRegion: watershedContourInt
+
+  # --- Quantification ---
+  quantification:
+    # mcquant: default MCMICRO quantification
+    # Produces CSV with CellID + per-marker mean intensities
+    enabled: true

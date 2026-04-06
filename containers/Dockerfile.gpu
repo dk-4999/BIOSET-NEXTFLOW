@@ -1,0 +1,46 @@
+# BioSET Preprocessing - GPU Container
+# ======================================
+# For GPU tile processing stage
+#
+# Build:
+#   docker build -f containers/Dockerfile.gpu -t bioset-preprocessing:gpu .
+#
+# Run:
+#   docker run --gpus all bioset-preprocessing:gpu bioset run ...
+
+FROM nvidia/cuda:12.2.2-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-venv \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Make python3.11 the default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
+
+# Install CuPy for CUDA 12.x
+RUN pip3 install --no-cache-dir \
+    cupy-cuda12x \
+    numpy \
+    scipy \
+    "dask[array]" \
+    "zarr==2.18.7" \
+    ome-zarr \
+    ome-types \
+    tifffile \
+    pyyaml \
+    requests
+
+# Install BioSET
+WORKDIR /app
+COPY . /app
+RUN pip3 install --no-cache-dir -e .
+
+# Default entrypoint
+ENTRYPOINT ["bioset"]

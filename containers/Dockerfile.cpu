@@ -1,0 +1,33 @@
+# BioSET Preprocessing - CPU Container
+# ======================================
+# For zarr conversion, global thresholds, and CPU aggregation stages
+#
+# Build:
+#   docker build -f containers/Dockerfile.cpu -t bioset-preprocessing:cpu .
+
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install dependencies (no cupy - CPU only)
+RUN pip install --no-cache-dir \
+    numpy \
+    scipy \
+    "dask[array]" \
+    "zarr==2.18.7" \
+    ome-zarr \
+    ome-types \
+    tifffile \
+    pyyaml \
+    requests \
+    rechunker==0.5.4
+
+# Install BioSET
+WORKDIR /app
+COPY . /app
+RUN pip install --no-cache-dir -e .
+
+ENTRYPOINT ["bioset"]

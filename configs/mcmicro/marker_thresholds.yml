@@ -1,0 +1,59 @@
+# Marker Positivity Thresholds for BioSET MCMICRO Adapter
+# ========================================================
+#
+# Each marker defines:
+#   - name:      Marker name (used as BioSET channel name)
+#   - column:    Column name in MCMICRO quantification CSV
+#   - threshold: Intensity threshold for cell positivity
+#
+# Tuning guide:
+#   - Start with moderate thresholds and inspect mask coverage
+#   - Compare voxel counts against legacy pipeline output
+#   - Higher threshold = fewer positive cells = sparser masks
+#   - Lower threshold = more positive cells = denser masks
+#
+# The column name typically follows MCMICRO's format:
+#   {marker_name}_mean  (mean intensity within cell boundary)
+#
+# Example for BiomedVis Challenge 2025 melanoma dataset:
+
+markers:
+  - name: Hoechst
+    column: Hoechst_mean
+    threshold: 500.0
+
+  - name: CD45
+    column: CD45_mean
+    threshold: 200.0
+
+  - name: CD3
+    column: CD3_mean
+    threshold: 150.0
+
+  - name: CD8
+    column: CD8_mean
+    threshold: 150.0
+
+  - name: CD4
+    column: CD4_mean
+    threshold: 150.0
+
+  - name: FOXP3
+    column: FOXP3_mean
+    threshold: 100.0
+
+  - name: CD20
+    column: CD20_mean
+    threshold: 200.0
+
+  - name: MART1
+    column: MART1_mean
+    threshold: 100.0
+
+  - name: SOX10
+    column: SOX10_mean
+    threshold: 100.0
+
+  - name: Pan Cytokeratin
+    column: Pan_Cytokeratin_mean
+    threshold: 200.0
