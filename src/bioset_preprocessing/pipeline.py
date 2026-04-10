@@ -197,7 +197,7 @@ class Pipeline:
         sum_intensity_gpu: Dict[float, Dict[int, cp.ndarray]] = {r: {} for r in radii}
 
         for ch_batch in chunked(self.cfg.channels, self.cfg.channel_batch):
-            vol_cpu = self.A_hi[0, ch_batch, :, ys, xs].compute()
+            vol_cpu = self.A_hi[0, ch_batch, :, ys, xs].compute().astype(np.float32)
             vol_gpu = cp.asarray(vol_cpu)
 
             for i, ch in enumerate(ch_batch):

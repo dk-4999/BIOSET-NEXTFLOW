@@ -54,7 +54,7 @@ params.converted_zarr   = 'zarr_converted/rechunked.zarr'
 
 // --- Pipeline parameters ---
 params.tile_size        = '128'
-params.channel_batch    = 8
+params.channel_batch    = 70
 params.alpha            = 0.4
 params.trim_q           = 0.98
 params.voxel_size       = '0.14,0.14,0.28'
@@ -157,7 +157,7 @@ process GLOBAL_THRESHOLDS {
     params.mode == 'legacy'
 
     input:
-    path zarr_path
+    val zarr_path
 
     output:
     path "global_thresholds.json", emit: thresholds
@@ -174,7 +174,8 @@ process GLOBAL_THRESHOLDS {
     channels = [int(c) for c in "${params.channels}".split(",") if c.strip()]
     vx, vy, vz = [float(v) for v in "${params.voxel_size}".split(",")]
 
-    pyr = ZarrPyramid.open("${zarr_path}")
+    zarr_location = "${params.zarr_url}" if "${params.zarr_url}" != "null" else "${zarr_path}"
+    pyr = ZarrPyramid.open(zarr_location)
 
     # Use lowest resolution for global thresholds
     if len(pyr.arrays) > 1:
@@ -207,7 +208,7 @@ process GPU_TILE_PROCESSING {
     publishDir "${params.outdir}/bioset_checkpoints", mode: 'copy', pattern: 'checkpoints/**'
 
     input:
-    path zarr_path
+    val zarr_path
     path thresholds_file  // global_thresholds.json (legacy) or empty (mcmicro)
 
     output:
@@ -218,7 +219,7 @@ process GPU_TILE_PROCESSING {
         """
         bioset run \
             --zarr-path ${zarr_path} \
-            ${params.zarr_url ? "--zarr-url ${params.zarr_url}" : ''} \
+            ${params.zarr_url != null ? "--zarr-url ${params.zarr_url}" : ""} \
             --meta "${params.metadata_url}" \
             --channels "${params.channels}" \
             --tile ${params.tile_size} \
@@ -283,7 +284,7 @@ process CPU_AGGREGATION {
         """
         bioset run \
             --zarr-path ${zarr_path} \
-            ${params.zarr_url ? "--zarr-url ${params.zarr_url}" : ''} \
+            ${params.zarr_url != null ? "--zarr-url ${params.zarr_url}" : "--zarr-path ${zarr_path}"} \
             --meta "${params.metadata_url}" \
             --channels "${params.channels}" \
             --tile ${params.tile_size} \
@@ -336,7 +337,7 @@ workflow {
 
     // Determine zarr source
     if (params.zarr_path != null) {
-        zarr_ch = Channel.fromPath(params.zarr_path)
+        zarr_ch = Channel.of(params.zarr_path)
     } else if (params.source_tiff != null || params.source_zarr_url != null) {
         // Need conversion
         source = params.source_tiff ?: params.source_zarr_url
