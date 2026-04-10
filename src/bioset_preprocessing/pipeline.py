@@ -38,8 +38,30 @@ def chunked(seq: Sequence[int], k: int) -> Iterator[List[int]]:
 
 class Pipeline:
     def __init__(self, cfg: PipelineConfig):
-        self.cfg = cfg
-        self._adapter = None  # MCMICROAdapter, loaded lazily
+        """
+        Parameters
+        ----------
+        stage : 'all' | 'gpu' | 'cpu'
+            When 'cpu', zarr/GPU initialisation is skipped so CPU aggregation
+            can run on a CPU-only node without cupy or zarr access.
+        """
+        self.cfg   = cfg
+        self.stage = stage
+        self._adapter = None
+
+        if stage == 'cpu':
+            # CPU aggregation only needs checkpoints + channel list.
+            self.A_hi       = None
+            self.A_lo       = None
+            self.pyr_local  = None
+            self.pyr_remote = None
+            self._t_global  = {}
+            # Still need dil/overlap_miner placeholders to avoid AttributeError
+            self.dil = None
+            self.overlap_miner = None
+            self.th = None
+            self.cc = None
+            return
 
         # ---------- Input mode setup ----------
         if cfg.input_mode == "mcmicro":
@@ -445,16 +467,17 @@ class Pipeline:
         from .aggregation import HierarchicalAggregator
         from .writer import BiosetWriter
 
-        _, _, z, y, x = self.A_hi.shape
         tile_y, tile_x = self.cfg.tile_xy
 
+        # Resolve volume shape — from zarr if available, otherwise from checkpoints
+        if self.A_hi is not None:
+            _, _, z, y, x = self.A_hi.shape
+        else:
+            z, y, x = self._infer_volume_shape_from_checkpoints(tile_y, tile_x)
+
+        # Resolve channel names
         if channel_names is None:
-            if self.cfg.input_mode == "mcmicro" and self._adapter:
-                channel_names = self._adapter.channel_names
-            elif self.cfg.channel_names:
-                channel_names = list(self.cfg.channel_names)
-            else:
-                channel_names = [f"ch{i}" for i in self.cfg.channels]
+            channel_names = self._resolve_channel_names()
 
         checkpoint_dir = Path(self.cfg.checkpoint_dir) / self.cfg.output_name
 
@@ -586,3 +609,72 @@ class Pipeline:
 
         for tile in iter_tiles_xy(y, x, tile_y=tile_y, tile_x=tile_x):
             yield self._process_single_tile(tile, radii, z)
+
+    def _infer_volume_shape_from_checkpoints(
+        self, tile_y: int, tile_x: int
+    ) -> tuple:
+        """Infer (z, y, x) volume shape from checkpoint filenames + tile size."""
+        import gzip, json as _json
+        checkpoint_dir = Path(self.cfg.checkpoint_dir) / self.cfg.output_name
+        files = sorted(checkpoint_dir.glob("tile_*.json.gz"))
+        if not files:
+            raise RuntimeError(
+                f"No checkpoint files found in {checkpoint_dir}. "
+                "Cannot infer volume shape for CPU aggregation."
+            )
+        # Parse tile coordinates from filenames: tile_XXXX_YYYY.json.gz
+        coords = []
+        for f in files:
+            parts = f.stem.replace(".json", "").split("_")
+            coords.append((int(parts[1]), int(parts[2])))   # (tx, ty)
+        max_tx = max(tx for tx, ty in coords) + 1
+        max_ty = max(ty for tx, ty in coords) + 1
+        # Get z from first checkpoint
+        with gzip.open(files[0], 'rt') as fh:
+            d = _json.load(fh)
+        z = d['tile_shape'][0]
+        return z, max_ty * tile_y, max_tx * tile_x
+
+    def _resolve_channel_names(self) -> List[str]:
+        """
+        Fetch channel names from OME-XML metadata URL.
+        Falls back to generic 'ch{i}' names on any error.
+        """
+        # MCMICRO mode: names come from the adapter
+        if self.cfg.input_mode == "mcmicro" and self._adapter:
+            return self._adapter.channel_names
+
+        # Explicit names in config
+        if self.cfg.channel_names:
+            return list(self.cfg.channel_names)
+
+        # Try to fetch from OME-XML metadata URL
+        meta_url = getattr(self.cfg, 'metadata_url', None)
+        if meta_url:
+            try:
+                import requests
+                from ome_types import from_xml
+                url = meta_url if 'METADATA.ome.xml' in meta_url \
+                      else meta_url.rstrip('/') + '/OME/METADATA.ome.xml'
+                resp = requests.get(url, timeout=30)
+                resp.raise_for_status()
+                ome = from_xml(resp.text)
+                img = ome.images[0]
+                all_names = [
+                    ch.name or f"ch{idx}"
+                    for idx, ch in enumerate(img.pixels.channels)
+                ]
+                return [
+                    all_names[i] if i < len(all_names) else f"ch{i}"
+                    for i in self.cfg.channels
+                ]
+            except Exception as exc:
+                import warnings
+                warnings.warn(
+                    f"[Pipeline] Could not fetch channel names from {meta_url}: {exc}. "
+                    "Falling back to generic names.",
+                    stacklevel=2,
+                )
+
+        # Generic fallback
+        return [f"ch{i}" for i in self.cfg.channels]

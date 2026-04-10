@@ -164,7 +164,8 @@ def _run_legacy(args, parser):
         checkpoint_dir=args.checkpoint_dir,
     )
 
-    pipe = Pipeline(cfg)
+    stage = getattr(args, 'stage', 'all') or 'all'
+    pipe = Pipeline(cfg, stage=stage)
     _execute_stage(pipe, args)
 
 
@@ -201,7 +202,8 @@ def _run_mcmicro(args):
     )
 
     cfg.validate()
-    pipe = Pipeline(cfg)
+    stage = getattr(args, 'stage', 'all') or 'all'
+    pipe = Pipeline(cfg, stage=stage)
     _execute_stage(pipe, args)
 
 
