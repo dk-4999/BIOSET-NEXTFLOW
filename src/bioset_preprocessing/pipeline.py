@@ -37,7 +37,7 @@ def chunked(seq: Sequence[int], k: int) -> Iterator[List[int]]:
 
 
 class Pipeline:
-    def __init__(self, cfg: PipelineConfig):
+    def __init__(self, cfg: PipelineConfig, stage: str = 'full'):
         """
         Parameters
         ----------
