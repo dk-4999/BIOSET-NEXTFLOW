@@ -404,7 +404,7 @@ class Pipeline:
         n_tiles_x = (x + tile_x - 1) // tile_x
         total_tiles = n_tiles_y * n_tiles_x
 
-        checkpoint_dir = Path(self.cfg.checkpoint_dir) / self.cfg.output_name
+        checkpoint_dir = Path(self.cfg.checkpoint_dir)
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         completed: Set[Tuple[int, int]] = set()
@@ -479,7 +479,7 @@ class Pipeline:
         if channel_names is None:
             channel_names = self._resolve_channel_names()
 
-        checkpoint_dir = Path(self.cfg.checkpoint_dir) / self.cfg.output_name
+        checkpoint_dir = Path(self.cfg.checkpoint_dir)
 
         stats = get_checkpoint_stats(checkpoint_dir)
         print(f"[Aggregation] Loading checkpoints from: {checkpoint_dir}")
@@ -615,7 +615,7 @@ class Pipeline:
     ) -> tuple:
         """Infer (z, y, x) volume shape from checkpoint filenames + tile size."""
         import gzip, json as _json
-        checkpoint_dir = Path(self.cfg.checkpoint_dir) / self.cfg.output_name
+        checkpoint_dir = Path(self.cfg.checkpoint_dir)
         files = sorted(checkpoint_dir.glob("tile_*.json.gz"))
         if not files:
             raise RuntimeError(

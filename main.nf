@@ -43,13 +43,13 @@ params.converted_zarr   = 'zarr_converted/rechunked.zarr'
 params.tile_size        = '128'
 params.channel_batch    = 70
 params.alpha            = 0.4
-params.trim_q           = 0.98
+params.trim_q           = 1.0
 params.voxel_size       = '0.14,0.14,0.28'
 params.min_obj_vol_um3  = 1.0
 params.dilate_um        = '0,0.5,1.0,1.5,2.0'
 params.max_set_size     = 4
-params.min_marker_vox   = 100
-params.min_support_pair = 50
+params.min_marker_vox   = 20
+params.min_support_pair = 10
 params.min_support_set  = 10
 params.hierarchy_levels = 4
 
@@ -154,7 +154,7 @@ process GPU_TILE_PROCESSING {
             --min-support-pair ${params.min_support_pair} \
             --min-support-set ${params.min_support_set} \
             --hierarchy-levels ${params.hierarchy_levels} \
-            --output-dir "${params.outdir}" \
+            --output-dir . \
             --output-name ${params.output_name} \
             --checkpoint-dir ${params.output_name} \
             --stage gpu
@@ -178,7 +178,7 @@ process GPU_TILE_PROCESSING {
             --min-support-pair ${params.min_support_pair} \
             --min-support-set ${params.min_support_set} \
             --hierarchy-levels ${params.hierarchy_levels} \
-            --output-dir "${params.outdir}" \
+            --output-dir . \
             --output-name ${params.output_name} \
             --checkpoint-dir ${params.output_name} \
             --stage gpu
@@ -229,9 +229,9 @@ process CPU_AGGREGATION {
             --min-support-pair ${params.min_support_pair} \
             --min-support-set ${params.min_support_set} \
             --hierarchy-levels ${params.hierarchy_levels} \
-            --output-dir "${params.outdir}" \
+            --output-dir . \
             --output-name ${params.output_name} \
-            --checkpoint-dir "${checkpoint_dir}" \
+            --checkpoint-dir "${checkpoint_dir}/${params.output_name}" \
             --stage cpu
         """
     else
@@ -251,9 +251,9 @@ process CPU_AGGREGATION {
             --min-support-pair ${params.min_support_pair} \
             --min-support-set ${params.min_support_set} \
             --hierarchy-levels ${params.hierarchy_levels} \
-            --output-dir "${params.outdir}" \
+            --output-dir . \
             --output-name ${params.output_name} \
-            --checkpoint-dir "${checkpoint_dir}" \
+            --checkpoint-dir "${checkpoint_dir}/${params.output_name}" \
             --stage cpu
         """
 }
