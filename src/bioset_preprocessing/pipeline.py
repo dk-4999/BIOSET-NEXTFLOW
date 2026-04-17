@@ -190,7 +190,7 @@ class Pipeline:
             return {}
 
         for ch in self.cfg.channels:
-            vol_lr = self.A_lo[0, ch, :, :, :].compute().astype(np.float32)
+            vol_lr = self.A_lo[0, ch, :, ::8, ::8].compute().astype(np.float32)
             self._t_global[ch] = self.th.compute_global(vol_lr)
         return dict(self._t_global)
 
@@ -657,8 +657,9 @@ class Pipeline:
                 url = meta_url if 'METADATA.ome.xml' in meta_url \
                       else meta_url.rstrip('/') + '/OME/METADATA.ome.xml'
                 resp = requests.get(url, timeout=30)
+                resp.encoding = 'utf-8'
                 resp.raise_for_status()
-                ome = from_xml(resp.text)
+                ome = from_xml(resp.text.replace('Â', ''))
                 img = ome.images[0]
                 all_names = [
                     ch.name or f"ch{idx}"

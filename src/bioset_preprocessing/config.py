@@ -50,11 +50,11 @@ class PipelineConfig:
 
     # ---------- Thresholding (legacy mode only) ----------
     alpha: float = 0.4
-    trim_q: float = 0.98
+    trim_q: float = 1.0
 
     # ---------- Segmentation ----------
     voxel_size_um: VoxelSizeUM = VoxelSizeUM(0.14, 0.14, 0.28)
-    min_obj_vol_um3: float = 1.0
+    min_obj_vol_um3: float = 0.01
     connectivity: int = 26
 
     # ---------- Dilation ----------
@@ -66,9 +66,9 @@ class PipelineConfig:
 
     # ---------- Overlaps ----------
     max_set_size: int = 4
-    min_marker_vox: Dict[float, int] | int = 1000
-    min_support_pair: Dict[float, int] | int = 100
-    min_support_set: Dict[float, int] | int = 50
+    min_marker_vox: Dict[float, int] | int = 20
+    min_support_pair: Dict[float, int] | int = 10
+    min_support_set: Dict[float, int] | int = 10
     aggressive_stop_on_fail: bool = True
 
     # ---------- Hierarchical aggregation ----------

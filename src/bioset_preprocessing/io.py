@@ -15,7 +15,7 @@ def _open_store(location: str):
         return root.store
     if not os.path.exists(location):
         raise FileNotFoundError(f"Local zarr path not found: {location}")
-    return zarr.NestedDirectoryStore(location)  
+    return zarr.DirectoryStore(location)
 
 @dataclass
 class ZarrPyramid:
